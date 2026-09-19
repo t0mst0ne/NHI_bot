@@ -170,7 +170,7 @@ class NHICrawler:
                 parent_text = a.parent.get_text(strip=True)
                 if "會議紀錄" in parent_text:
                     clean_title = parent_text.replace("PDF", "").replace("會議實錄錄音檔", "").strip()
-                    file_url = urljoin(config.NHI_BASE_URL, h)
+                    file_url = urljoin(year_url, h)
                     item_id = hashlib.md5(f"device_pbac_{clean_title}_{h}".encode()).hexdigest()[:16]
 
                     date_match = re.search(r'\((\d{3}\.\d{2}\.\d{2})新增\)', clean_title)
@@ -192,7 +192,7 @@ class NHICrawler:
                             "url": file_url
                         }
                     })
-        return items
+        return list(reversed(items))
 
     # ==========================================
     # 3. 重大醫療新聞 (Medical News)
