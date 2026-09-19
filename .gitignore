@@ -4,4 +4,4 @@ __pycache__/
 *.pyc
 *.log
 downloads/
-nhi_history.db
+*.db-journal

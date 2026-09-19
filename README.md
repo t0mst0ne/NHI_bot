@@ -116,17 +116,21 @@ GEMINI_MODEL=gemini-2.5-flash
 
 ---
 
-## ⏰ 設定系統排程 (Crontab 或 Launchd)
+## 🤖 GitHub Actions 自動化每日掃描 (推薦)
 
-若偏好使用作業系統的原生 crontab 每日執行：
+專案已內建 [`.github/workflows/daily_scan.yml`](file:///.github/workflows/daily_scan.yml)，每天**台灣時間中午 12:00 (UTC 04:00)** 會自動在雲端執行掃描、比較與 Telegram 推播，無需自己架設伺服器！
 
-```bash
-crontab -e
-```
-加入以下設定（例如每日早上 9:00 執行）：
-```cron
-0 9 * * * cd /Users/tomstone/GITHUB/NHI_bot && /Users/tomstone/GITHUB/NHI_bot/.venv/bin/python main.py --scan-once >> /Users/tomstone/GITHUB/NHI_bot/cron.log 2>&1
-```
+### 設定步驟：
+
+1. 前往 GitHub 倉庫：`https://github.com/t0mst0ne/NHI_bot`
+2. 點選 **Settings** -> **Secrets and variables** -> **Actions**。
+3. 點選 **New repository secret**，新增以下 Secrets：
+   - `GEMINI_API_KEY`：您的 Google Gemini API Key
+   - `TELEGRAM_BOT_TOKEN`：您的 Telegram Bot Token
+   - `TELEGRAM_CHAT_ID`：接收推播的 Telegram Chat ID
+   - `FIRECRAWL_API_KEY`：（選填）Firecrawl API Key
+4. 前往 **Actions** 頁籤，點選 **Daily NHI Scan & Telegram Alert**，點擊 **Run workflow** 即可隨時手動測試雲端執行！
+5. **狀態自動同步**：當發現新公告並推播後，GitHub Action 會自動將更新後的 `data/` 歷史紀錄 commit 回倉庫，確保後續不會重複推播。
 
 ---
 

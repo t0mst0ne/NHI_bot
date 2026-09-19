@@ -34,6 +34,28 @@ class Storage:
             cursor.execute("SELECT 1 FROM announcements WHERE id = ?", (announcement_id,))
             return cursor.fetchone() is not None
 
+    def _sync_to_json(self):
+        try:
+            import json
+            from pathlib import Path
+            json_file = Path(self.db_path).parent / "processed.json"
+            all_records = self.get_recent(limit=500)
+            # Save lightweight index
+            data = {
+                r["id"]: {
+                    "title": r["title"],
+                    "doc_no": r["doc_no"],
+                    "issue_date": r["issue_date"],
+                    "publish_date": r["publish_date"],
+                    "url": r["url"],
+                    "created_at": r["created_at"]
+                }
+                for r in all_records
+            }
+            json_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            pass
+
     def mark_processed(
         self,
         announcement_id: str,
@@ -61,6 +83,7 @@ class Storage:
                 datetime.now().isoformat()
             ))
             conn.commit()
+        self._sync_to_json()
 
     def get_recent(self, limit: int = 5) -> List[Dict]:
         with self._get_connection() as conn:

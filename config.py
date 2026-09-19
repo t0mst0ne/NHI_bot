@@ -17,8 +17,10 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "").strip()
 NHI_BASE_URL = "https://www.nhi.gov.tw"
 NHI_LIST_URL = "https://www.nhi.gov.tw/ch/lp-3258-1.html"
 
-# SQLite Database
-DB_PATH = BASE_DIR / "nhi_history.db"
+# Data directory (persisted in git for GitHub Actions state tracking)
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = DATA_DIR / "nhi_history.db"
 
 # Temp / Download cache folder
 DOWNLOAD_DIR = BASE_DIR / "downloads"
