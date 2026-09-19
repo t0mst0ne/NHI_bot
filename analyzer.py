@@ -40,44 +40,71 @@ class NHIAnalyzer:
         doc_no = announcement.get("doc_no", "")
         issue_date = announcement.get("issue_date", "")
         content = announcement.get("content", "")
+        category = announcement.get("category", "regulations")
+        category_tag = announcement.get("category_tag", "⚖️【法規公告】")
 
         attachments_section = ""
         if attachment_texts:
             attachments_section = "\n\n【附件內容擷取】\n"
             for idx, att in enumerate(attachment_texts, 1):
                 attachments_section += f"\n--- 附件 {idx}：{att.get('name', '檔案')} ({att.get('title', '')}) ---\n"
-                attachments_section += att.get("text", "")[:10000] + "\n"
+                attachments_section += att.get("text", "")[:12000] + "\n"
 
-        prompt = f"""請詳細解析以下衛生福利部中央健康保險署（健保署）最新公告：
+        category_guidance = ""
+        if category in ["drug_pbac", "device_pbac"]:
+            category_guidance = (
+                "【特別分析要求（共擬會審查紀錄）】\n"
+                "此為新藥/特材進入健保給付前最關鍵的共擬會審查紀錄：\n"
+                "- 請特別整理：本次會議討論通過、暫予保留或不予同意的品項（成分名、商品名、廠牌）。\n"
+                "- 臨床適應症、治療線次、核定健保支付價格或藥商建議價。\n"
+                "- 健保財務影響預估或附加協議（風險分攤方案）。\n"
+            )
+        elif category == "drug_supply":
+            category_guidance = (
+                "【特別分析要求（藥品供應與短缺）】\n"
+                "- 請特別整理：短缺藥品品名/成分、短缺原因及預估恢復供貨期程。\n"
+                "- 臨床建議替代藥品品項與健保代碼。\n"
+                "- 醫療院所與藥局因應調劑注意事項。\n"
+            )
+        elif category == "medical_news":
+            category_guidance = (
+                "【特別分析要求（重大醫療政策新聞）】\n"
+                "- 請提煉政策核心亮點：挹注金額、受益族群、醫療院所調整幅度。\n"
+                "- 轉化為醫事人員與民眾能快速掌握的白話重點。\n"
+            )
 
-【公告標題】{title}
-【發文字號】{doc_no}
-【發布日期】{issue_date}
+        prompt = f"""請詳細解析以下衛生福利部中央健康保險署（健保署）最新公布資訊：
 
-【公告內文】
+【分類標籤】{category_tag}
+【資訊標題】{title}
+【參考編號/字號】{doc_no}
+【日期】{issue_date}
+
+【內文資料】
 {content}
 {attachments_section}
 
-請依照以下格式進行專業詳細解讀（使用清晰的 Markdown 格式與適當 Emoji）：
+{category_guidance}
+
+請依照以下結構進行深度解讀（使用清晰的 Markdown 格式與適當 Emoji，專業且精準）：
 
 1. 📌 **【核心摘要】**
-   - 本公告的主要目的、政策背景及核心結論（簡明扼要，1-2段話）。
+   - 本公告/紀錄的核心結論、政策背景與主要意圖（1-2段話）。
 
-2. 🎯 **【法規與給付重點】**
-   - 若為藥品或特材：請列出具體成分名／品名、健保代碼、支付價格（新收載或價格調幅）、初核說明、給付規定修訂重點（如適用癌別、治療線次、限制條件）。
-   - 若為支付標準或計畫：列出新增/修正點數、申報代碼、品質保證或獎勵保留款重點。
+2. 🎯 **【關鍵要點與數據】**
+   - 具體項目、藥品/特材成分名、健保代碼、點數或價格變更、審查通過條件。
 
-3. 🏥 **【受影響對象與適用機構】**
-   - 哪些醫療院所（醫學中心、區域醫院、地區醫院、基層診所、藥局）或特定科別醫師會受到影響？
-   - 哪些病患族群直接受惠或適用？
+3. 🏥 **【受影響對象與醫療機構】**
+   - 哪些層級醫療院所（醫學中心、區域、地區、診所、藥局）或專科醫師受影響？
+   - 適用病患族群。
 
-4. 📅 **【生效與實施時程】**
-   - 明確指出生效日期（注意是否追溯生效或特定季別實施）。
+4. 📅 **【時程與生效日期】**
+   - 明確標出實施、生效或供貨時程。
 
 5. 📎 **【附件精華解析】**
-   - 綜合附件（PDF、Excel、ODS）內部的關鍵表格數據或條文對照重點整理。
+   - 提煉附件（PDF、Excel、ODS）內部之重要表格與條文對照。
 
-6. 💡 **【實務因應與注意事項】**
-   - 醫療機構、醫事行政人員申報時需注意的事項或審查要點。
+6. 💡 **【臨床與行政實務因應】**
+   - 臨床開立、健保申報或藥品採購時的具體行動建議。
 """
         return prompt

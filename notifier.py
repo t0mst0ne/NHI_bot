@@ -114,12 +114,14 @@ class TelegramNotifier:
         issue_date = announcement.get("issue_date", "")
         url = announcement.get("detail_url", "")
 
+        category_tag = announcement.get("category_tag", "⚖️【法規公告】")
+
         header = (
-            f"📢 *【健保署法規公告推播】*\n\n"
+            f"📢 *【健保署情報推播】* {category_tag}\n\n"
             f"📌 *主旨*：{title}\n"
-            f"📄 *字號*：`{doc_no}`\n"
+            f"📄 *編號/字號*：`{doc_no}`\n"
             f"📅 *發布日期*：{issue_date}\n"
-            f"🔗 *公告連結*：[點擊前往健保署官方頁面]({url})\n"
+            f"🔗 *官方連結*：[點擊前往健保署頁面]({url})\n"
             f"━━━━━━━━━━━━━━━━━━━━\n\n"
         )
 

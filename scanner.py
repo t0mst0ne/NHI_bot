@@ -36,15 +36,18 @@ class NHIScanner:
                 chosen.extend(items)
         return chosen
 
-    def run_scan(self, max_items: Optional[int] = None, force_reprocess: bool = False) -> Dict[str, Any]:
+    def run_scan(self, max_items: Optional[int] = None, force_reprocess: bool = False, categories: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Scan NHI announcements list, process any new items, and send Telegram alerts.
+        Scan NHI announcements across all 5 categories, process any new items, and send Telegram alerts.
         """
-        logger.info("Starting NHI announcements scan...")
-        announcements = self.crawler.get_announcements_list()
+        logger.info("Starting comprehensive NHI medical announcements scan across 5 categories...")
+        announcements = self.crawler.get_all_medical_announcements()
         if not announcements:
             logger.warning("No announcements retrieved.")
-            return {"scanned": 0, "processed": 0, "errors": 0}
+            return {"scanned": 0, "processed": 0, "errors": 0, "skipped": 0}
+
+        if categories:
+            announcements = [a for a in announcements if a.get("category") in categories]
 
         if max_items:
             announcements = announcements[:max_items]
@@ -58,12 +61,17 @@ class NHIScanner:
                 stats["skipped"] += 1
                 continue
 
-            logger.info(f"Processing announcement [{item_id}]: {item['title'][:40]}...")
+            category_tag = item.get("category_tag", "")
+            logger.info(f"Processing {category_tag} [{item_id}]: {item['title'][:40]}...")
             try:
                 # 1. Fetch detail content and attachments list
                 detail = self.crawler.get_announcement_detail(item["detail_url"])
                 item["content"] = detail.get("content", "")
                 raw_attachments = detail.get("attachments", [])
+
+                # Add direct file if item already specified one (e.g. direct PDF link)
+                if item.get("direct_file"):
+                    raw_attachments.append(item["direct_file"])
 
                 # 2. Download and extract text from attachments
                 deduped_attachments = self._dedupe_attachments(raw_attachments)
@@ -105,7 +113,8 @@ class NHIScanner:
                     issue_date=item.get("issue_date", ""),
                     publish_date=item.get("publish_date", ""),
                     url=item["detail_url"],
-                    summary=ai_summary
+                    summary=ai_summary,
+                    category=item.get("category", "regulations")
                 )
 
                 stats["processed"] += 1

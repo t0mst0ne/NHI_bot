@@ -17,6 +17,7 @@ class Storage:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS announcements (
                     id TEXT PRIMARY KEY,
+                    category TEXT DEFAULT 'regulations',
                     title TEXT NOT NULL,
                     doc_no TEXT,
                     issue_date TEXT,
@@ -26,6 +27,11 @@ class Storage:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            # Check if category column exists in case of existing table
+            cursor.execute("PRAGMA table_info(announcements)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if "category" not in columns:
+                cursor.execute("ALTER TABLE announcements ADD COLUMN category TEXT DEFAULT 'regulations'")
             conn.commit()
 
     def is_processed(self, announcement_id: str) -> bool:
@@ -39,10 +45,10 @@ class Storage:
             import json
             from pathlib import Path
             json_file = Path(self.db_path).parent / "processed.json"
-            all_records = self.get_recent(limit=500)
-            # Save lightweight index
+            all_records = self.get_recent(limit=1000)
             data = {
                 r["id"]: {
+                    "category": r.get("category", "regulations"),
                     "title": r["title"],
                     "doc_no": r["doc_no"],
                     "issue_date": r["issue_date"],
@@ -53,7 +59,7 @@ class Storage:
                 for r in all_records
             }
             json_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        except Exception as e:
+        except Exception:
             pass
 
     def mark_processed(
@@ -64,16 +70,18 @@ class Storage:
         issue_date: str,
         publish_date: str,
         url: str,
-        summary: str = ""
+        summary: str = "",
+        category: str = "regulations"
     ):
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT OR REPLACE INTO announcements (
-                    id, title, doc_no, issue_date, publish_date, url, summary, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    id, category, title, doc_no, issue_date, publish_date, url, summary, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 announcement_id,
+                category,
                 title,
                 doc_no,
                 issue_date,
@@ -85,13 +93,19 @@ class Storage:
             conn.commit()
         self._sync_to_json()
 
-    def get_recent(self, limit: int = 5) -> List[Dict]:
+    def get_recent(self, limit: int = 5, category: Optional[str] = None) -> List[Dict]:
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM announcements ORDER BY created_at DESC LIMIT ?", (limit,)
-            )
+            if category:
+                cursor.execute(
+                    "SELECT * FROM announcements WHERE category = ? ORDER BY created_at DESC LIMIT ?",
+                    (category, limit)
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM announcements ORDER BY created_at DESC LIMIT ?", (limit,)
+                )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
@@ -100,3 +114,9 @@ class Storage:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM announcements")
             return cursor.fetchone()[0]
+
+    def count_by_category(self) -> Dict[str, int]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT category, COUNT(*) FROM announcements GROUP BY category")
+            return {row[0] or "regulations": row[1] for row in cursor.fetchall()}
