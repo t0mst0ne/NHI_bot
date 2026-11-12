@@ -41,8 +41,11 @@
      - `/categories`：檢視 5 大分類詳細說明與官網專區網址。
      - `/status`：查看機器人運行狀態、資料庫統計（含各分類細部數量）與爬蟲模式。
      - `/help`：顯示功能指令選單。
-6. **SQLite 與 JSON 雙軌歷史紀錄**：
-   - 內建 `data/nhi_history.db` 與 `data/processed.json`，已推播過的情報不會重複發送，並能在 GitHub Actions 中自動保存。
+6. **SQLite 去重與每日 Markdown 紀錄**：
+   - `data/nhi_history.db` 保存處理狀態，避免重複推播。
+   - 每日公告存放於 `data/daily/YYYY-MM-DD.md`，以首次處理的台灣日期分檔，包含分類、發文字號、日期、原始連結與完整 AI 摘要。同日新增公告會整合至同一檔案，強制重新處理則更新原有條目。
+   - 啟動時會從 SQLite 補齊既有歷史的每日 Markdown，取代原本的 `data/processed.json`。沒有公告的日期不建立空白檔案；GitHub Actions 會連同資料庫自動保存每日紀錄。
+   - 舊的初始化紀錄僅有公告資訊，沒有保存 AI 摘要，會在每日檔案內註明；新處理的公告會保存完整摘要。
 
 ---
 
@@ -52,7 +55,10 @@
 NHI_bot/
 ├── .env                  # 環境變數與金鑰配置
 ├── config.py             # 配置管理
-├── storage.py            # SQLite 資料庫操作模組
+├── storage.py            # SQLite 去重與每日 Markdown 匯出
+├── data/
+│   ├── nhi_history.db    # 已處理公告與 AI 摘要
+│   └── daily/            # 每日紀錄（YYYY-MM-DD.md）
 ├── crawler.py            # 健保署法規公告爬蟲 (Firecrawl / curl_cffi)
 ├── extractor.py          # 附件下載與文件文字萃取 (PDF, ODS, Excel, Word)
 ├── analyzer.py           # Google Gemini AI 專業分析模組

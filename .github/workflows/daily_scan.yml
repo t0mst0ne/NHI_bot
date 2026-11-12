@@ -37,14 +37,14 @@ jobs:
         run: |
           python main.py --scan-once
 
-      - name: Commit and push updated state
+      - name: Commit and push daily Markdown and state
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/
           # 檢查是否有新公文寫入 data/，若有變動才 commit 並 push 回 main
           if ! git diff --staged --quiet; then
-            git commit -m "chore: update processed announcements state [skip ci]"
+            git commit -m "chore: update daily announcements and state [skip ci]"
             git push
           else
             echo "No new announcements found today. Database is already up to date."
